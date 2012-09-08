@@ -54,6 +54,9 @@ module DEA
     MAX_USAGE_SAMPLES = (1*60)/MONITOR_INTERVAL  # 1 minutes @ 5 sec interval
     CRASHES_REAPER_INTERVAL   = 30   # 30 secs
     CRASHES_REAPER_TIMEOUT = 3600 # delete crashes older than 1 hour
+    DETECT_INTERVAL = 0.5       # 0.5 secs
+    DETECT_STATE_TIMEOUT = 600  # 5 minutes @ 0.5 sec interval
+    DETECT_PORT_TIMEOUT = 120   # 1 minute @ 0.5 sec interval
 
     # CPU Thresholds
     BEGIN_RENICE_CPU_THRESHOLD = 50
@@ -966,7 +969,7 @@ module DEA
 
     def detect_state_ready(instance, state_file, &block)
       attempts = 0
-      timer = EM.add_periodic_timer(0.5) do
+      timer = EM.add_periodic_timer(DETECT_INTERVAL) do
         state = nil
         begin
           if File.file?(state_file)
@@ -979,7 +982,7 @@ module DEA
           timer.cancel
         elsif instance[:debug_mode] != "suspend"
           attempts += 1
-          if attempts > 600 || instance[:state] != :STARTING # 5 minutes or instance was stopped
+          if attempts > DETECT_STATE_TIMEOUT || instance[:state] != :STARTING # 5 minutes or instance was stopped
             block.call(false)
             timer.cancel
           end
@@ -990,7 +993,7 @@ module DEA
     def detect_port_ready(instance, &block)
       port = instance[:port]
       attempts = 0
-      timer = EM.add_periodic_timer(0.5) do
+      timer = EM.add_periodic_timer(DETECT_INTERVAL) do
         begin
           # SystemTimer does not work correctly here, possible bad interaction with EM, hence the use of standard Timeout
           Timeout::timeout(0.25, NonFatalTimeOutError) do
@@ -1001,7 +1004,7 @@ module DEA
           end
         rescue => e
           attempts += 1
-          if attempts > 120 || instance[:state] != :STARTING # 1 minute or instance was stopped
+          if attempts > DETECT_PORT_TIMEOUT || instance[:state] != :STARTING # 1 minute or instance was stopped
             timer.cancel
             block.call(false)
           end
