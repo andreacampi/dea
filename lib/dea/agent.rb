@@ -127,6 +127,7 @@ module DEA
       @filer_start_timer = nil    # The periodic timer responsible for starting the filer
       @evacuation_delay = config['evacuation_delay'] || DEFAULT_EVACUATION_DELAY
       @recovered_droplets = false
+      @detect_port_timeout = config['detect_port_timeout'] || DETECT_PORT_TIMEOUT
 
       # Various directories and files we will use
       @pid_filename   = config['pid']
@@ -1004,7 +1005,7 @@ module DEA
           end
         rescue => e
           attempts += 1
-          if attempts > DETECT_PORT_TIMEOUT || instance[:state] != :STARTING # 1 minute or instance was stopped
+          if attempts > @detect_port_timeout || instance[:state] != :STARTING # 1 minute or instance was stopped
             timer.cancel
             block.call(false)
           end
