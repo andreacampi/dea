@@ -1654,6 +1654,9 @@ module DEA
 
             # Re-register with router on startup since these are orphaned and may have been dropped.
             register_instance_with_router(instance) if startup_check
+          elsif instance[:pid] && instance_running?(instance)
+            # We may have lost a race condition with an app that was just starting
+            @logger.warn("Slow-starting app #{instance[:log_id]} excluded from stats, next time")
           else
             # App *should* no longer be running if we are here
             instance.delete(:pid)
